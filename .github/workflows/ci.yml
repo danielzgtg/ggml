@@ -74,3 +74,36 @@ jobs:
     - name: Test
       working-directory: ./build
       run: ctest --verbose --timeout 900
+
+  windows:
+    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' ||
+            github.event.inputs.run_type == 'full-ci' }}
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        build: [Release]
+        arch: [x64]
+        sdl2: [ON]
+        include:
+          - arch: x64
+            s2arc: x64
+            jnaPath: win32-x86-64
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v4
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Configure
+        run: >
+          cmake -S . -B ./build -A ${{ matrix.arch }}
+          -DCMAKE_BUILD_TYPE=${{ matrix.build }}
+          -DBUILD_SHARED_LIBS=ON
+
+      - name: Build
+        run: |
+          cd ./build
+          msbuild ALL_BUILD.vcxproj -t:build -p:configuration=${{ matrix.build }} -p:platform=${{ matrix.arch }}
